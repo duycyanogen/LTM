@@ -1,22 +1,16 @@
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /*
@@ -71,6 +65,11 @@ public class UDPServerForm extends javax.swing.JFrame implements Runnable {
         btnEncode.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         btnEncode.setForeground(new java.awt.Color(51, 51, 255));
         btnEncode.setText("ENCODE");
+        btnEncode.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnEncodeActionPerformed(evt);
+            }
+        });
 
         jLabel5.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         jLabel5.setForeground(new java.awt.Color(255, 51, 51));
@@ -174,6 +173,10 @@ public class UDPServerForm extends javax.swing.JFrame implements Runnable {
     }
     private void btnListenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnListenActionPerformed
         // TODO add your handling code here:  
+        if (txtKey.getText().length() == 0) {
+            JOptionPane.showMessageDialog(this, "The key must not be empty!");
+            return;
+        }
         if (!isRunning) {
             try {
                 port = Integer.parseInt(txtPort.getText());
@@ -209,6 +212,10 @@ public class UDPServerForm extends javax.swing.JFrame implements Runnable {
         t.start();
 
     }//GEN-LAST:event_btnListenActionPerformed
+
+    private void btnEncodeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEncodeActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnEncodeActionPerformed
 
     private DatagramPacket receiveData(DatagramSocket server) throws IOException {
         byte temp[] = new byte[1024];
@@ -276,6 +283,7 @@ public class UDPServerForm extends javax.swing.JFrame implements Runnable {
 
     @Override
     public void run() {
+        Vigenere v = new Vigenere();
         while (true) {
             try {
                 txtStatus.setText("Server is running...");
@@ -300,10 +308,16 @@ public class UDPServerForm extends javax.swing.JFrame implements Runnable {
                         socket.receive(listNumberPacket);
                         String fileName = new String(fileNamePacket.getData()).trim();
                         String listInteger = new String(listNumberPacket.getData()).trim();//list integer
-                        System.out.println(fileName);
-                        System.out.println(listInteger);
-                        writeFileBinary(fileName, listInteger);// ghi file
-                        String primeNumberList = listPrimeNumber(readFileBinary(fileName));
+                        //Mã hóa                      
+                        String plainText = v.LowerToUpper(listInteger);
+                        String keyword = v.LowerToUpper(txtKey.getText());
+                        String key = v.generateKey(plainText, keyword);
+                        String encodedText = v.encode(plainText, key);
+                        System.out.println("ENCODED TEXT: " + encodedText);
+                        writeFileBinary(fileName, encodedText);// ghi file
+                        String integerList = readFileBinary(fileName);
+                        String integerListDecoded = v.decode(integerList, key);
+                        String primeNumberList = listPrimeNumber(integerListDecoded);
                         txtResult.setText(primeNumberList);
                         sendData(primeNumberList, socket, receivePacket.getAddress(), receivePacket.getPort());
                     } else {// File type = Text
@@ -315,10 +329,15 @@ public class UDPServerForm extends javax.swing.JFrame implements Runnable {
                         socket.receive(listNumberPacket);
                         String fileName = new String(fileNamePacket.getData()).trim();
                         String listInteger = new String(listNumberPacket.getData()).trim();//list integer
-                        System.out.println(fileName);
-                        System.out.println(listInteger);
-                        writeFile(fileName, listInteger);// ghi file
-                        String primeNumberList = listPrimeNumber(readFile(fileName));
+                        String plainText = v.LowerToUpper(listInteger);
+                        String keyword = v.LowerToUpper(txtKey.getText());
+                        String key = v.generateKey(plainText, keyword);
+                        String encodedText = v.encode(plainText, key);
+                        System.out.println("ENCODED TEXT: " + encodedText);
+                        writeFile(fileName, encodedText);// ghi file
+                        String integerList = readFile(fileName);
+                        String integerListDecoded = v.decode(integerList, key);
+                        String primeNumberList = listPrimeNumber(integerListDecoded);
                         txtResult.setText(primeNumberList);
                         sendData(primeNumberList, socket, receivePacket.getAddress(), receivePacket.getPort());
                     }
